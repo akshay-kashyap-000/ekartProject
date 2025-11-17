@@ -1,12 +1,18 @@
 import dotenv from 'dotenv'
-dotenv.config();
+dotenv.config({quiet:true}); //$ give path in option if .env file is not present in the root folder
 
 import express from 'express'
+import { errorMiddleware } from './src/middlewares/error.middleware.js';
+
+import userRoutes from './src/routes/user/user.routes.js'
 
 const app = express();
 
 app.use(express.json()) //? to handle json data
 app.use(express.urlencoded({extended:true})); //? to handle form data
 
+app.use("/api/user", userRoutes)
+
+app.use(errorMiddleware)
 
 export default app; 
