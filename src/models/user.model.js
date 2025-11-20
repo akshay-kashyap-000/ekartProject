@@ -2,6 +2,7 @@
 
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
+import crypto from "crypto" 
 
 const userSchema = new mongoose.Schema(
     {
@@ -33,23 +34,87 @@ const userSchema = new mongoose.Schema(
             required: true,
             default: false,
         },
+        //! for email
+        emailVerificationToken:{
+            type:String,
+        },
+        emailVerificationTokenExpiry:{
+            type:Date,            
+        },
+        //! for password
+        passwordResetToken:{
+            type:String,
+        },
+        passwordResetTokenExpiry:{
+            type:Date,
+        },
     },
-    { timestamps: true, toJSON: "", toObject: "" }
+    {
+        timestamps: true,
+        toJSON: {
+            transform(doc, ret) { //$ this is used to show mongoose into json for frontend(UI)
+                console.log("toJSON ");
+                delete ret.__v
+                delete ret.password;
+                ret.id = ret._id;
+                delete ret._id
+            },
+        },
+        toObject: {
+            transform(doc, ret) {
+                console.log("toObject");
+                delete ret.__v
+                delete ret.password;
+                ret.id = ret._id;
+                delete ret._id
+            }
+        }
+    }
 );
 
 userSchema.pre("save", async function (next) {
-    // if (!this.isModified("password")) return next();
-    //TODO:
-    //? this if block will only execute when the modified field is not password
+
+    //#  this if block will only execute when the modified field is  password
+    if (!this.isModified("password")) return next();
+
     let salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
     next();
 });
 
 userSchema.methods.comparePassword = async function (enteredPassword) {
-    return await bcrypt.compare(this.password, enteredPassword);
+    return await bcrypt.compare(enteredPassword, this.password);
 };
+
+userSchema.methods.generateEmailVerificationToken = function() {
+    const randomBytes=crypto.randomBytes(32).toString("hex"); //# it will sent to mail
+
+    this.emailVerificationToken = crypto
+        .createHash("sha256")
+        .update(randomBytes)
+        .digest("hex")
+
+    this.emailVerificationTokenExpiry = Date.now() + 10 * 60 * 1000
+    return randomBytes
+};
+
+userSchema.methods.generateResetPasswordToken = function(){
+    const randomBytes=crypto.randomBytes(32).toString("hex"); //# it will sent to mail
+
+    this.passwordResetToken = crypto
+        .createHash("sha256")
+        .update(randomBytes)
+        .digest("hex")
+
+    this.passwordResetTokenExpiry = Date.now() + 10 * 60 * 1000
+    return randomBytes
+}
 
 const UserModel = mongoose.model("User", userSchema);
 
 export default UserModel;
+
+//$ 1) while registering, a token is generated and that token is sent to client's mail
+//$ 2) in backend, same token is hashed using some process, and that hashed token is saved in databse
+//$ 3) when client will click on the verification link, in the url there will be un-hashed token is present, we will extract the token, and the extracted token is hashed using same process
+//$  4) after that the hahsed token is checked in database, if it matches
