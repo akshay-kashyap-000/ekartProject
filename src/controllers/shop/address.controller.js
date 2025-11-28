@@ -1,6 +1,7 @@
 import expressAsyncHandler from "express-async-handler";
 import AddressModel from "../../models/address.model.js";
 import ApiResponse from "../../utils/ApiResponse.utils.js";
+import CustomError from "../../utils/CustomError.utils.js";
 
 export const addAddress = expressAsyncHandler(async (req, res) => {
     const { addressLine, city, state, pinCode, phone, notes } = req.body;
@@ -16,17 +17,22 @@ export const addAddress = expressAsyncHandler(async (req, res) => {
 
     new ApiResponse(200, "Address added successfully").send(res)
 });
-
+    
 export const getAddresses = expressAsyncHandler(async (req, res, next) => {
     let addresses = await AddressModel.find({})
+    console.log(addresses);
+    
 
-    new ApiResponse(201, "Address fetched successfully", addresses).send(res)
+    if(addresses.length === 0)  next(new CustomError(400,"No address found"))
+
+    new ApiResponse(201, "Addresses fetched successfully", addresses).send(res) 
 });
 
 export const getAddress = expressAsyncHandler(async (req, res, next) => {
     let userId = req.myUser._id;
 
     let address = await AddressModel.find({ userId });
+    if(address.length === 0)  next(new CustomError(400,"No address found"))
 
     new ApiResponse(200, "Address fetched successfully", address).send(res)
 });
@@ -34,13 +40,25 @@ export const getAddress = expressAsyncHandler(async (req, res, next) => {
 export const updateAddress = expressAsyncHandler(async (req, res, next) => {
     let userId = req.myUser._id;
 
-    let updatedAddress = await AddressModel.findOneAndUpdate({ userId })
+    let updatedAddress = await AddressModel.findOneAndUpdate(
+        req.myUser._id,
+        req.body,
+        {
+            new: true, //? it returns the updated document
+            runValidators: true, //? validate the updated document against th schema
+        }
+    )
+    if(!updatedAddress) next(new CustomError(400, "No user found"))
 
     new ApiResponse(201, "Address updated successfully", updatedAddress).send(res)
 });
 
 export const deleteAddress = expressAsyncHandler(async (req, res, next) => {
     let userId = req.myUser._id;
+
+    let address = await AddressModel.find(userId)
+    
+    if(address.length === 0)  next(new CustomError(400,"No address to be deleted"))
 
     let deletedAddress = await AddressModel.findOneAndDelete({userId})
 

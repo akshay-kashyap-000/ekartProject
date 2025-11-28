@@ -1,8 +1,12 @@
+import dotenv from 'dotenv'
+dotenv.config({quiet:true})
+
 import nodemailer from 'nodemailer'
 
-const transport = nodemailer.createTransport({
+const mailTransport = nodemailer.createTransport({
     host:process.env.NODEMAILER_HOST,
     port:process.env.NODEMAILER_PORT,
+    service:"gmail",
     secure:process.env.NODEMAILER_SECURE,
     auth:{
         user:process.env.NODEMAILER_EMAIL,
@@ -10,4 +14,4 @@ const transport = nodemailer.createTransport({
     }
 })
 
-export default transport;
+export default mailTransport;

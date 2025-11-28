@@ -95,7 +95,7 @@ userSchema.methods.generateEmailVerificationToken = function() {
         .digest("hex")
 
     this.emailVerificationTokenExpiry = Date.now() + 10 * 60 * 1000
-    return randomBytes
+    return randomBytes;
 };
 
 userSchema.methods.generateResetPasswordToken = function(){

@@ -19,6 +19,11 @@ export  const authenticate = expressAsyncHandler(async (req,res,next)=>{
 
 })
 
+export const authorize  = expressAsyncHandler(async(req, res, next)=>{
+    if(req.myUser.role === "admin") next()
+    
+    else next(new CustomError(400, "Not authorised to access"))
+})
 // let req = {
 //     body:{},
 //     cookies:{},
